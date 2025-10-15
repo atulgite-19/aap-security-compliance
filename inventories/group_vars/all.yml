@@ -1,0 +1,7 @@
+splunk_url: "https://download.splunk.com/products/universalforwarder/releases/9.2.0/linux/splunkforwarder-9.2.0.rpm"
+qualys_url: "https://your_org.qualys.com/qualys-agent.rpm"
+mde_url: "https://packages.microsoft.com/your_mde_agent_package.rpm"
+tanium_url: "https://your_tanium_server/download/taniumclient.rpm"
+
+# Organization-specific tags
+org_compliance_tag: "Security-Standard-v1"
