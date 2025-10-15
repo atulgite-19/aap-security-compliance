@@ -1,0 +1,32 @@
+---
+- name: Install Splunk Universal Forwarder
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if Splunk is installed
+      stat:
+        path: /opt/splunkforwarder/bin/splunk
+      register: splunk_check
+
+    - name: Download Splunk UF package
+      get_url:
+        url: "{{ splunk_url }}"
+        dest: /tmp/splunkforwarder.rpm
+      when: not splunk_check.stat.exists
+
+    - name: Install Splunk UF
+      yum:
+        name: /tmp/splunkforwarder.rpm
+        state: present
+      when: not splunk_check.stat.exists
+
+    - name: Accept Splunk license and start service
+      command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
+      when: not splunk_check.stat.exists
+
+    - name: Enable Splunk UF at boot
+      systemd:
+        name: SplunkForwarder
+        enabled: yes
+        state: started
