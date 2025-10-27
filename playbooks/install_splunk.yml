@@ -121,7 +121,7 @@
       debug:
         var: script_output.stdout
 
-when: not splunk_path.stat.exists
+  when: not splunk_path.stat.exists
 
 
 # - name: Install Splunk Universal Forwarder
