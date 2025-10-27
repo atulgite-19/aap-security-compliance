@@ -1,32 +1,157 @@
 ---
-- name: Install Splunk Universal Forwarder
-  hosts: all
-  become: yes
-
-  tasks:
-    - name: Check if Splunk is installed
+# --------------------------------------------------------------
+# Linux - RHEL, Debian Family - Set facts, Download and Install
+# --------------------------------------------------------------
+- block:
+    - name: Check if Splunk Universal Forwarder is already installed
       stat:
-        path: /opt/splunkforwarder/bin/splunk
-      register: splunk_check
+        path: /opt/splunkforwarder
+      register: splunk_path
 
-    - name: Download Splunk UF package
-      get_url:
-        url: "{{ splunk_url }}"
-        dest: /tmp/splunkforwarder.rpm
-      when: not splunk_check.stat.exists
+    - name: Debug message if Splunk already exists
+      debug:
+        msg: "Splunk UF is already installed, skipping installation."
+      when: splunk_path.stat.exists
+    
+    - name: Check if Splunk service exists
+      shell: systemctl list-unit-files | grep -w SplunkForwarder.service || true
+      register: splunk_service
+      changed_when: false
 
-    - name: Install Splunk UF
-      yum:
-        name: /tmp/splunkforwarder.rpm
-        state: present
-      when: not splunk_check.stat.exists
-
-    - name: Accept Splunk license and start service
-      command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
-      when: not splunk_check.stat.exists
-
-    - name: Enable Splunk UF at boot
+    - name: Enable and start Splunk service if it exists
       systemd:
         name: SplunkForwarder
         enabled: yes
         state: started
+      when: splunk_service.stdout != ""
+
+- block:
+    - name: Install required files
+      apt: 
+        name: ['auditd']
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Starting required programs
+      service:
+        name: auditd
+        state: restarted
+        enabled: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install required files on SLES
+      zypper: 
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - acl 
+          #- auditd
+      when: ansible_distribution == 'SLES' or ansible_facts['distribution'] == "SLES_SAP"
+
+    # - name: Create directory for downloading splunk
+    #   file:
+    #     path: ~/Splunk/
+    #     state: directory
+    #     owner: root
+    #     group: root
+    #     mode: 0700
+    #     recurse: no
+
+    - name: Set package filename for aarch64
+      set_fact:
+        package_file: "splunk-installer-linux-uf-aarch64.tar.gz"
+      when:
+      - ansible_architecture == "aarch64" 
+
+    - name: Set package filename for x86_64
+      set_fact:
+        package_file: "splunk-installer-linux-uf-x86_64.tar.gz"
+      when:
+      - ansible_architecture == "x86_64"
+
+    - name: Check if Splunk file already exists
+      stat:
+        path: /tmp/{{ splunk_url }}
+      register: rpm_stat
+    
+    - name: Download splunk agent from S3
+      amazon.aws.s3_object:
+        bucket: "security-tools-storage"
+        # object: "Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm"
+        object: {{ splunk_url }}
+        dest: "/tmp/SplunkForwarder.tar.gz"
+        mode: get
+        region: "us-east-1"
+      when: not rpm_stat.stat.exists
+      register: s3_download
+
+    - name: Extract splunk installation files
+      unarchive:
+        src: /tmp/SplunkForwarder.tar.gz
+        dest: /tmp/
+        remote_src: yes
+        mode: 0700
+        owner: root
+        group: root
+
+    - name: Find extracted Splunk directory
+      find:
+        paths: /root/Splunk
+        file_type: directory
+        depth: 1
+      register: extracted_dirs
+
+    - name: Set the working directory
+      set_fact:
+        splunk_dir: "{{ extracted_dirs.files[0].path }}"
+
+    - name: Ensure the Splunk installer script has executable permission
+      file:
+        path: "{{ splunk_dir }}/splunk_nix_install.sh"
+        mode: '0755'
+        state: file
+        
+    - name: Execute the activation script
+      shell: ./splunk_nix_install.sh
+      args:
+        chdir: "{{ splunk_dir }}"
+      register: script_output
+      # ignore_errors: true
+
+    - name: Display script output
+      debug:
+        var: script_output.stdout
+
+when: not splunk_path.stat.exists
+
+
+# - name: Install Splunk Universal Forwarder
+#   hosts: all
+#   become: yes
+
+#   tasks:
+#     - name: Check if Splunk is installed
+#       stat:
+#         path: /opt/splunkforwarder/bin/splunk
+#       register: splunk_check
+
+#     - name: Download Splunk UF package
+#       get_url:
+#         url: "{{ splunk_url }}"
+#         dest: /tmp/splunkforwarder.rpm
+#       when: not splunk_check.stat.exists
+
+#     - name: Install Splunk UF
+#       yum:
+#         name: /tmp/splunkforwarder.rpm
+#         state: present
+#       when: not splunk_check.stat.exists
+
+#     - name: Accept Splunk license and start service
+#       command: /opt/splunkforwarder/bin/splunk start --accept-license --answer-yes
+#       when: not splunk_check.stat.exists
+
+#     - name: Enable Splunk UF at boot
+#       systemd:
+#         name: SplunkForwarder
+#         enabled: yes
+#         state: started
