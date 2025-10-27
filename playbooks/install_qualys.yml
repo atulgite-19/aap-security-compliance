@@ -9,6 +9,11 @@
           - python3-botocore
         state: present
 
+    - name: Check if Qualys Cloud Agent file already exists
+      stat:
+        path: /tmp/{{ qualys_url }}
+      register: rpm_stat
+    
     - name: Download Qualys Cloud Agent from S3
       amazon.aws.s3_object:
         bucket: "security-tools-storage"
@@ -17,12 +22,16 @@
         dest: "/tmp/QualysCloudAgent.rpm"
         mode: get
         region: "us-east-1"
+      when: not rpm_stat.stat.exists
       register: s3_download
 
     - name: Verify S3 download result
       debug:
         msg: "File downloaded successfully to {{ s3_download.dest }}"
-      when: s3_download.changed
+      when:
+        - not rpm_stat.stat.exists
+        - s3_download is defined
+        - s3_download.changed | default(false)
 
     - name: Install Qualys Cloud Agent RPM
       command: sudo rpm -ivh "/tmp/QualysCloudAgent.rpm"
@@ -36,7 +45,7 @@
       debug:
         msg: "{{ verify_install.stdout }}"
 
-
+when: ansible_os_family == "RedHat"
     # - name: Set package filename for RHEL 8 / 9 x86_64
     #   set_fact:
     #     package_file: "Linux_RPM_X64_QualysCloudAgent.rpm"
@@ -55,7 +64,7 @@
     #   ignore_errors: true
     #   register: script_output
 
-  when: ansible_os_family == "RedHat" and ansible_architecture == "x86_64"
+  # when: ansible_os_family == "RedHat" and ansible_architecture == "x86_64"
 
 # - block:
 #     - name: Set package filename for RHEL 8 / 9 aarch64
