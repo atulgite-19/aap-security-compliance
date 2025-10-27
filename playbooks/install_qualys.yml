@@ -2,46 +2,81 @@
 # Linux - RedHat Family - Set facts, Download and Install
 # ---------------------------------------------------------
 - block:
-    - name: Set package filename for RHEL 8 / 9 x86_64
-      set_fact:
-        package_file: "Linux_RPM_X64_QualysCloudAgent.rpm"
+    - name: Ensure AWS and boto libraries are present
+      package:
+        name:
+          - python3-boto3
+          - python3-botocore
+        state: present
 
-    - name: Download package from Azure Blob (RHEL)
-      get_url:
-        url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
-        dest: "/tmp/{{ package_file }}"
-        mode: '0644'
+    - name: Download Qualys Cloud Agent from S3
+      amazon.aws.s3_object:
+        bucket: "security-tools-storage"
+        # object: "Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm"
+        object: {{ qualys_url }}
+        dest: "/tmp/QualysCloudAgent.rpm"
+        mode: get
+        region: "us-east-1"
+      register: s3_download
+
+    - name: Verify S3 download result
+      debug:
+        msg: "File downloaded successfully to {{ s3_download.dest }}"
+      when: s3_download.changed
+
+    - name: Install Qualys Cloud Agent RPM
+      command: sudo rpm -ivh "/tmp/QualysCloudAgent.rpm"
+    
+    - name: Verify installation
+      command: rpm -q qualys-cloud-agent
+      register: verify_install
+      changed_when: false
+
+    - name: Display installed package
+      debug:
+        msg: "{{ verify_install.stdout }}"
+
+
+    # - name: Set package filename for RHEL 8 / 9 x86_64
+    #   set_fact:
+    #     package_file: "Linux_RPM_X64_QualysCloudAgent.rpm"
+
+    # - name: Download package from Azure Blob (RHEL)
+    #   get_url:
+    #     url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
+    #     dest: "/tmp/{{ package_file }}"
+    #     mode: '0644'
   
-    - name: Install RPM package on RHEL-based systems x86_64
-      command: "rpm -ivh /tmp/{{ package_file }}"
-      become: yes
-      args:
-        creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
-      ignore_errors: true
-      register: script_output
+    # - name: Install RPM package on RHEL-based systems x86_64
+    #   command: "rpm -ivh /tmp/{{ package_file }}"
+    #   become: yes
+    #   args:
+    #     creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
+    #   ignore_errors: true
+    #   register: script_output
 
   when: ansible_os_family == "RedHat" and ansible_architecture == "x86_64"
 
-- block:
-    - name: Set package filename for RHEL 8 / 9 aarch64
-      set_fact:
-        package_file: "Linux_RPM_ARM64_QualysCloudAgent.rpm"
+# - block:
+#     - name: Set package filename for RHEL 8 / 9 aarch64
+#       set_fact:
+#         package_file: "Linux_RPM_ARM64_QualysCloudAgent.rpm"
 
-    - name: Download package from Azure Blob (RHEL)
-      get_url:
-        url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
-        dest: "/tmp/{{ package_file }}"
-        mode: '0644'
+#     - name: Download package from Azure Blob (RHEL)
+#       get_url:
+#         url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
+#         dest: "/tmp/{{ package_file }}"
+#         mode: '0644'
 
-    - name: Install RPM package on RHEL-based systems aarch64
-      command: "rpm -ivh /tmp/{{ package_file }}"
-      become: yes
-      args:
-        creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
-      ignore_errors: true
-      register: script_output
+#     - name: Install RPM package on RHEL-based systems aarch64
+#       command: "rpm -ivh /tmp/{{ package_file }}"
+#       become: yes
+#       args:
+#         creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
+#       ignore_errors: true
+#       register: script_output
 
-  when: ansible_os_family == "RedHat" and ansible_architecture == "aarch64"
+#   when: ansible_os_family == "RedHat" and ansible_architecture == "aarch64"
   
 - block:
     - name: wait 30 seconds for full Qualys installation
@@ -65,101 +100,101 @@
 # ---------------------------------------------------------
 # Linux - SUSE Family - Set facts, Download and Install
 # ---------------------------------------------------------
-- block:
-    - name: Set package filename for SUSE
-      set_fact:
-        package_file: "SUSE_Linux_QualysCloudAgent.rpm"
+# - block:
+#     - name: Set package filename for SUSE
+#       set_fact:
+#         package_file: "SUSE_Linux_QualysCloudAgent.rpm"
 
-    - name: Download package from Azure Blob (SUSE)
-      get_url:
-        url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
-        dest: "/tmp/{{ package_file }}"
-        mode: '0644'
+#     - name: Download package from Azure Blob (SUSE)
+#       get_url:
+#         url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
+#         dest: "/tmp/{{ package_file }}"
+#         mode: '0644'
 
-    - name: Install RPM package on SUSE-based systems
-      command: "rpm -ivh /tmp/{{ package_file }}"
-      become: yes
-      args:
-        creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
-      ignore_errors: true
-      register: script_output
+#     - name: Install RPM package on SUSE-based systems
+#       command: "rpm -ivh /tmp/{{ package_file }}"
+#       become: yes
+#       args:
+#         creates: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh"
+#       ignore_errors: true
+#       register: script_output
 
-    - name: wait 30 seconds for full Qualys installation
-      pause:
-        seconds: 30
+#     - name: wait 30 seconds for full Qualys installation
+#       pause:
+#         seconds: 30
 
-    - name: Configure Qualys Agent on SUSE
-      command: "./qualys-cloud-agent.sh ActivationId={{ qualys_activation_id }} CustomerId={{ qualys_customer_id }}"
-      args:
-        chdir: "/usr/local/qualys/cloud-agent/bin"
-      ignore_errors: true
+#     - name: Configure Qualys Agent on SUSE
+#       command: "./qualys-cloud-agent.sh ActivationId={{ qualys_activation_id }} CustomerId={{ qualys_customer_id }}"
+#       args:
+#         chdir: "/usr/local/qualys/cloud-agent/bin"
+#       ignore_errors: true
 
-    - name: Start Qualys service on SUSE
-      systemd:
-        name: qualys-cloud-agent.service
-        state: started
-        enabled: yes
+#     - name: Start Qualys service on SUSE
+#       systemd:
+#         name: qualys-cloud-agent.service
+#         state: started
+#         enabled: yes
 
-  when: ansible_os_family == "Suse" and ansible_architecture == "x86_64" and (ansible_distribution == "SLES" or ansible_distribution == "SLES_SAP")
+#   when: ansible_os_family == "Suse" and ansible_architecture == "x86_64" and (ansible_distribution == "SLES" or ansible_distribution == "SLES_SAP")
 
-# ---------------------------------------------------------
-# Linux - Debian Family - Set facts, Download and Install
-# ---------------------------------------------------------
-- name: Set package filename for Ubuntu
-  set_fact:
-    package_file: "Linux_Deb_x64_QualysCloudAgent.deb"
-  when: ansible_os_family == "Debian" and ansible_architecture == "x86_64"
+# # ---------------------------------------------------------
+# # Linux - Debian Family - Set facts, Download and Install
+# # ---------------------------------------------------------
+# - name: Set package filename for Ubuntu
+#   set_fact:
+#     package_file: "Linux_Deb_x64_QualysCloudAgent.deb"
+#   when: ansible_os_family == "Debian" and ansible_architecture == "x86_64"
 
-- name: Set package filename for Ubuntu
-  set_fact:
-    package_file: "Linux_Deb_ARM64_QualysCloudAgent.deb"
-  when: ansible_os_family == "Debian" and ansible_architecture == "aarch64"
+# - name: Set package filename for Ubuntu
+#   set_fact:
+#     package_file: "Linux_Deb_ARM64_QualysCloudAgent.deb"
+#   when: ansible_os_family == "Debian" and ansible_architecture == "aarch64"
 
-- name: Download package from Azure Blob (Debian/Ubuntu)
-  get_url:
-    url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
-    dest: "/tmp/{{ package_file }}"
-    mode: '0644'
-  when: ansible_os_family == "Debian"
+# - name: Download package from Azure Blob (Debian/Ubuntu)
+#   get_url:
+#     url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
+#     dest: "/tmp/{{ package_file }}"
+#     mode: '0644'
+#   when: ansible_os_family == "Debian"
 
-- name: Install DEB package on Debian-based systems x86_64
-  command: "dpkg -i /tmp/{{ package_file }}"
-  args:
-    warn: false
-  when: ansible_os_family == "Debian" and ansible_architecture == "x86_64"
-  ignore_errors: true
+# - name: Install DEB package on Debian-based systems x86_64
+#   command: "dpkg -i /tmp/{{ package_file }}"
+#   args:
+#     warn: false
+#   when: ansible_os_family == "Debian" and ansible_architecture == "x86_64"
+#   ignore_errors: true
 
-- name: Install DEB package on Debian-based systems aarch64
-  command: "dpkg -i /tmp/{{ package_file }}"
-  args:
-    warn: false
-  when: ansible_os_family == "Debian" and ansible_architecture == "aarch64"
-  ignore_errors: true
-  register: script_output
+# - name: Install DEB package on Debian-based systems aarch64
+#   command: "dpkg -i /tmp/{{ package_file }}"
+#   args:
+#     warn: false
+#   when: ansible_os_family == "Debian" and ansible_architecture == "aarch64"
+#   ignore_errors: true
+#   register: script_output
 
-- name: Fix dependencies on Debian/Ubuntu
-  command: "apt-get install -f -y"
-  when: ansible_os_family == "Debian"
-  ignore_errors: true
+# - name: Fix dependencies on Debian/Ubuntu
+#   command: "apt-get install -f -y"
+#   when: ansible_os_family == "Debian"
+#   ignore_errors: true
 
-- name: wait 30 seconds for full Qualys installation
-  pause:
-    seconds: 30
-  when: ansible_os_family == "Debian"
+# - name: wait 30 seconds for full Qualys installation
+#   pause:
+#     seconds: 30
+#   when: ansible_os_family == "Debian"
 
-- name: Configure Qualys Agent on Debian/Ubuntu
-  command: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ActivationId={{ qualys_activation_id }} CustomerId={{ qualys_customer_id }}"
-  args:
-    chdir: "/usr/local/qualys/cloud-agent/bin"
-  ignore_errors: true
-  when: ansible_os_family == "Debian"
+# - name: Configure Qualys Agent on Debian/Ubuntu
+#   command: "/usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ActivationId={{ qualys_activation_id }} CustomerId={{ qualys_customer_id }}"
+#   args:
+#     chdir: "/usr/local/qualys/cloud-agent/bin"
+#   ignore_errors: true
+#   when: ansible_os_family == "Debian"
 
-- name: Start Qualys service on Debian/Ubuntu
-  systemd:
-    name: qualys-cloud-agent.service
-    state: started
-    enabled: yes
-  when: ansible_os_family == "Debian"
+# - name: Start Qualys service on Debian/Ubuntu
+#   systemd:
+#     name: qualys-cloud-agent.service
+#     state: started
+#     enabled: yes
+#   when: ansible_os_family == "Debian"
 
 # ---------------------------------------------------------
 # Windows Family - Set facts, Download and Install
@@ -171,7 +206,8 @@
 
 - name: Download package from Azure Blob (Windows)
   win_get_url:
-    url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
+    # url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
+    url: {{ qualys_url_windows }}
     dest: "C:\\Temp\\{{ package_file }}"
   when: ansible_os_family == "Windows"
 
