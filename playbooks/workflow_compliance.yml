@@ -1,14 +1,13 @@
 ---
-- name: Ensure all security agents are installed
+- import_playbook: install_splunk.yml
+- import_playbook: install_qualys.yml
+- import_playbook: install_mde.yml
+- import_playbook: install_tanium.yml
+
+- name: Tag instance as compliant (optional for AWS)
   hosts: all
   become: yes
-
   tasks:
-    - import_playbook: install_splunk.yml
-    - import_playbook: install_qualys.yml
-    - import_playbook: install_mde.yml
-    - import_playbook: install_tanium.yml
-
     - name: Tag instance as compliant (optional for AWS)
       amazon.aws.ec2_tag:
         region: us-east-1
