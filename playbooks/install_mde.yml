@@ -1,0 +1,34 @@
+# ----------------------------------------
+# Linux - Set facts, Download and Install
+# ----------------------------------------
+- block:
+    - name: Set Package Filename
+      set_fact:
+        package_file: "mdatp-installer-linux.tar.gz"
+
+    - name: Download | Package from Azure Blob
+      get_url:
+        url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
+        dest: "/tmp/{{ package_file }}"
+        mode: '0644'
+
+    - name: Extract MDE Installation Files
+      unarchive:
+        src: /tmp/{{ package_file }}
+        dest: /tmp
+        remote_src: yes
+        mode: 0700
+        owner: root
+        group: root
+
+    - name: Change Install Script Permissions
+      file:
+        path: /tmp/mdatp-installer-linux/mde_installer.sh
+        mode: 0777
+
+    - name: Install MDE
+      shell: ./mde_installer.sh -i
+      args:
+        chdir: "/tmp/mdatp-installer-linux/"
+
+  when: ansible_os_family == "RedHat" or ansible_os_family == "Debian" or ansible_os_family == "Suse"
