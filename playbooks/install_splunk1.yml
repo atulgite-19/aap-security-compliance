@@ -1,0 +1,102 @@
+# --------------------------------------------------------------
+# Linux - RHEL, Debian Family - Set facts, Download and Install
+# --------------------------------------------------------------
+- block:
+    - name: Check if Splunk Universal Forwarder is already installed
+      stat:
+        path: /opt/splunkforwarder
+      register: splunk_path
+
+    - name: Debug message if Splunk already exists
+      debug:
+        msg: "Splunk UF is already installed, skipping installation."
+      when: splunk_path.stat.exists
+    
+    - name: Check if Splunk service exists
+      shell: systemctl list-unit-files | grep -w SplunkForwarder.service || true
+      register: splunk_service
+      changed_when: false
+
+    - name: Enable and start Splunk service if it exists
+      systemd:
+        name: SplunkForwarder
+        enabled: yes
+        state: started
+      when: splunk_service.stdout != ""
+
+- block:
+    - name: Install required files
+      apt: 
+        name: ['auditd']
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Starting required programs
+      service:
+        name: auditd
+        state: restarted
+        enabled: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install required files on SLES
+      zypper: 
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - acl 
+          #- auditd
+      when: ansible_distribution == 'SLES' or ansible_facts['distribution'] == "SLES_SAP"
+
+    - name: Create directory for downloading splunk
+      file:
+        path: ~/Splunk/
+        state: directory
+        owner: root
+        group: root
+        mode: 0700
+        recurse: no
+
+    - name: Set package filename for aarch64
+      set_fact:
+        package_file: "splunk-installer-linux-uf-aarch64.tar.gz"
+      when:
+      - ansible_architecture == "aarch64" 
+
+    - name: Set package filename for x86_64
+      set_fact:
+        package_file: "splunk-installer-linux-uf-x86_64.tar.gz"
+      when:
+      - ansible_architecture == "x86_64"
+
+    - name: Download package from Azure Blob
+      get_url:
+        url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
+        dest: "~/Splunk/{{ package_file }}"
+        mode: '0644'
+
+    - name: Extract splunk installation files
+      unarchive:
+        src: ~/Splunk/{{ package_file }}
+        dest: ~/Splunk
+        remote_src: yes
+        mode: 0700
+        owner: root
+        group: root
+
+    - name: Find extracted Splunk directory
+      find:
+        paths: /root/Splunk
+        file_type: directory
+        depth: 1
+      register: extracted_dirs
+
+    - name: Set the working directory
+      set_fact:
+        splunk_dir: "{{ extracted_dirs.files[0].path }}"
+
+    - name: Execute the activation script
+      shell: ./splunk_nix_install.sh
+      args:
+        chdir: "{{ splunk_dir }}"
+      register: script_output
+      # ignore_errors: true
+  when: not splunk_path.stat.exists
