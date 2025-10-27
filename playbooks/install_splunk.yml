@@ -70,14 +70,14 @@
 
     - name: Check if Splunk file already exists
       stat:
-        path: /tmp/{{ splunk_url }}
+        path: /tmp/"{{ splunk_url }}"
       register: rpm_stat
     
     - name: Download splunk agent from S3
       amazon.aws.s3_object:
         bucket: "security-tools-storage"
         # object: "Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm"
-        object: {{ splunk_url }}
+        object: "{{ splunk_url }}"
         dest: "/tmp/SplunkForwarder.tar.gz"
         mode: get
         region: "us-east-1"
