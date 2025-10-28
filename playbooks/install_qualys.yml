@@ -91,7 +91,7 @@
         
         - name: Install package from local path
           win_command: >
-            C:\Temp\"{{ package_file }}" CustomerId="{{ qualys_customer_id }}" ActivationId="{{ qualys_activation_id }}" WebServiceUri=https://qagpublic.qg1.apps.qualys.com/CloudAgent/ /quiet /norestart
+            C:\Temp\{{ package_file }} CustomerId={{ qualys_customer_id }} ActivationId={{ qualys_activation_id }} WebServiceUri=https://qagpublic.qg1.apps.qualys.com/CloudAgent/ /quiet /norestart
           ignore_errors: true
           register: script_output
           when: ansible_os_family == "Windows"
