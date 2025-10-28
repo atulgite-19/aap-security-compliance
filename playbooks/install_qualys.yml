@@ -10,6 +10,11 @@
 # Linux - RedHat Family - Set facts, Download and Install
 # ---------------------------------------------------------
     - block:
+        - name: Enable EPEL repository
+          command: dnf install -y epel-release
+          args:
+            warn: false
+
         - name: Ensure AWS and boto libraries are present
           package:
             name:
