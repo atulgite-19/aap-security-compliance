@@ -5,7 +5,17 @@
   gather_facts: yes
 
   vars:
-  qualys_binary: "{{ qualys_packages[ansible_distribution][ansible_architecture] }}"
+    qualys_packages:
+    RedHat:
+      x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
+    CentOS:
+      x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
+    Amazon:
+      x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
+    Ubuntu:
+      x86_64: Linux_Deb_X64_QualysCloudAgent_7.1.0.37.deb
+  
+    qualys_binary: "{{ qualys_packages[ansible_distribution][ansible_architecture] }}"
   
   tasks:
 
