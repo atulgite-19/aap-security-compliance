@@ -8,9 +8,9 @@
 # --------------------------------------------------------------
   tasks:
     - name: Check if Splunk Universal Forwarder is already installed
-          stat:
-            path: /opt/splunkforwarder
-          register: splunk_path
+      stat:
+        path: /opt/splunkforwarder
+      register: splunk_path
 
     - block:   
         - name: Debug message if Splunk already exists
