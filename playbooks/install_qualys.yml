@@ -10,24 +10,21 @@
 # Linux - RedHat Family - Set facts, Download and Install
 # ---------------------------------------------------------
     - block:
-        - name: Ensure pip is installed
-          package:
-            name: python3-pip
-            state: present
-    
-        - name: Ensure EPEL repository is installed
-          package:
-            name: epel-release
-            state: present
-          ignore_errors: yes
-
-        - name: Ensure AWS and boto libraries are present
-          package:
-            name:
-              - python3-boto3
-              - python3-botocore
-            state: present
-          ignore_errors: yes
+        - name: Ensure Python3, pip, and boto libraries are installed
+          block:
+            - name: Install Python3 and pip
+              package:
+                name:
+                  - python3
+                  - python3-pip
+                state: present
+        
+            - name: Install boto3 and botocore using pip
+              pip:
+                name:
+                  - boto3
+                  - botocore
+                executable: pip3
         
         - name: Check if Qualys Cloud Agent file already exists
           stat:
@@ -37,7 +34,6 @@
         - name: Download Qualys Cloud Agent from S3
           amazon.aws.s3_object:
             bucket: "security-tools-storage"
-            # object: "Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm"
             object: "{{ qualys_url }}"
             dest: "/tmp/QualysCloudAgent.rpm"
             mode: get
