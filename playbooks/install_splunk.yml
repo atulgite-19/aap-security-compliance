@@ -7,12 +7,12 @@
 # Linux - RHEL, Debian Family - Set facts, Download and Install
 # --------------------------------------------------------------
   tasks:
-    - block:
-        - name: Check if Splunk Universal Forwarder is already installed
+    - name: Check if Splunk Universal Forwarder is already installed
           stat:
             path: /opt/splunkforwarder
           register: splunk_path
-    
+
+    - block:   
         - name: Debug message if Splunk already exists
           debug:
             msg: "Splunk UF is already installed, skipping installation."
@@ -29,37 +29,6 @@
             enabled: yes
             state: started
           when: splunk_service.stdout != ""
-    
-    # - block:
-    #     - name: Install required files
-    #       apt: 
-    #         name: ['auditd']
-    #       when: ansible_distribution == 'Ubuntu'
-    
-    #     - name: Starting required programs
-    #       service:
-    #         name: auditd
-    #         state: restarted
-    #         enabled: yes
-    #       when: ansible_distribution == 'Ubuntu'
-    
-    #     - name: Install required files on SLES
-    #       zypper: 
-    #         name: "{{ packages }}"
-    #       vars:
-    #         packages:
-    #           - acl 
-    #           #- auditd
-    #       when: ansible_distribution == 'SLES' or ansible_facts['distribution'] == "SLES_SAP"
-    
-        # - name: Create directory for downloading splunk
-        #   file:
-        #     path: ~/Splunk/
-        #     state: directory
-        #     owner: root
-        #     group: root
-        #     mode: 0700
-        #     recurse: no
     
         - name: Set package filename for aarch64
           set_fact:
@@ -120,7 +89,6 @@
           args:
             chdir: "{{ splunk_dir }}"
           register: script_output
-          # ignore_errors: true
     
         - name: Display script output
           debug:
