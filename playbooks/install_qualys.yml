@@ -28,13 +28,13 @@
         
         - name: Check if Qualys Cloud Agent file already exists
           stat:
-            path: /tmp/"{{ qualys_url }}"
+            path: /tmp/"{{ qualys_binary }}"
           register: rpm_stat
         
         - name: Download Qualys Cloud Agent from S3
           amazon.aws.s3_object:
             bucket: "security-tools-storage"
-            object: "{{ qualys_url }}"
+            object: "{{ qualys_binary }}"
             dest: "/tmp/QualysCloudAgent.rpm"
             mode: get
             region: "us-east-1"
