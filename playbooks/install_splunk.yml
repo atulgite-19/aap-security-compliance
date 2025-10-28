@@ -30,27 +30,27 @@
             state: started
           when: splunk_service.stdout != ""
     
-    - block:
-        - name: Install required files
-          apt: 
-            name: ['auditd']
-          when: ansible_distribution == 'Ubuntu'
+    # - block:
+    #     - name: Install required files
+    #       apt: 
+    #         name: ['auditd']
+    #       when: ansible_distribution == 'Ubuntu'
     
-        - name: Starting required programs
-          service:
-            name: auditd
-            state: restarted
-            enabled: yes
-          when: ansible_distribution == 'Ubuntu'
+    #     - name: Starting required programs
+    #       service:
+    #         name: auditd
+    #         state: restarted
+    #         enabled: yes
+    #       when: ansible_distribution == 'Ubuntu'
     
-        - name: Install required files on SLES
-          zypper: 
-            name: "{{ packages }}"
-          vars:
-            packages:
-              - acl 
-              #- auditd
-          when: ansible_distribution == 'SLES' or ansible_facts['distribution'] == "SLES_SAP"
+    #     - name: Install required files on SLES
+    #       zypper: 
+    #         name: "{{ packages }}"
+    #       vars:
+    #         packages:
+    #           - acl 
+    #           #- auditd
+    #       when: ansible_distribution == 'SLES' or ansible_facts['distribution'] == "SLES_SAP"
     
         # - name: Create directory for downloading splunk
         #   file:
