@@ -134,8 +134,8 @@
 # ---------------------------------
 # Fail if no matching package
 # ---------------------------------
-    # - block:
-    #     - name: Fail if no package_file defined
-    #       fail:
-    #         msg: "No matching package defined for {{ ansible_distribution }} {{ ansible_architecture }}"
-    #   when: package_file is not defined
+    - block:
+        - name: Fail if no package_file defined
+          fail:
+            msg: "No matching package defined for {{ ansible_distribution }} {{ ansible_architecture }}"
+      when: package_file is not defined
