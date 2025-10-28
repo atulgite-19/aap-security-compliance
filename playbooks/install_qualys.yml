@@ -53,7 +53,7 @@
           debug:
             msg: "{{ verify_install.stdout }}"
         
-        when: ansible_os_family == "RedHat"
+      when: ansible_os_family == "RedHat"
   
     # - name: Set package filename for RHEL 8 / 9 x86_64
     #   set_fact:
