@@ -225,13 +225,13 @@
 - name: Download package from Azure Blob (Windows)
   win_get_url:
     # url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}" #{{ sas_token }}"
-    url: {{ qualys_url_windows }}
+    url: "{{ qualys_url_windows }}"
     dest: "C:\\Temp\\{{ package_file }}"
   when: ansible_os_family == "Windows"
 
 - name: Install package from local path
   win_command: >
-    C:\Temp\{{ package_file }} CustomerId={{ qualys_customer_id }} ActivationId={{ qualys_activation_id }} WebServiceUri=https://qagpublic.qg1.apps.qualys.com/CloudAgent/ /quiet /norestart
+    C:\Temp\"{{ package_file }}" CustomerId="{{ qualys_customer_id }}" ActivationId="{{ qualys_activation_id }}" WebServiceUri=https://qagpublic.qg1.apps.qualys.com/CloudAgent/ /quiet /norestart
   ignore_errors: true
   register: script_output
   when: ansible_os_family == "Windows"
