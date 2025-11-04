@@ -18,10 +18,14 @@
   #   qualys_binary: "{{ qualys_packages[ansible_distribution][ansible_architecture] }}"
   
   tasks:
-
-# ---------------------------------------------------------
+    - name: Check if Qualys Cloud Agent is already installed
+      become: true
+      ansible.builtin.shell: rpm -q qualys-cloud-agent
+      register: qualys_check
+      ignore_errors: true
+# --------------------------------------------------------
 # Linux - RedHat Family - Set facts, Download and Install
-# ---------------------------------------------------------
+# --------------------------------------------------------
     - block:
         - name: Ensure Python3, pip, and boto libraries are installed
           block:
@@ -62,11 +66,11 @@
             - s3_download is defined
             - s3_download.changed | default(false)
         
-        - name: Check if Qualys Cloud Agent is already installed
-          become: true
-          ansible.builtin.shell: rpm -q qualys-cloud-agent
-          register: qualys_check
-          ignore_errors: true
+        # - name: Check if Qualys Cloud Agent is already installed
+        #   become: true
+        #   ansible.builtin.shell: rpm -q qualys-cloud-agent
+        #   register: qualys_check
+        #   ignore_errors: true
         
         - name: Install Qualys Cloud Agent
           become: true
@@ -85,7 +89,7 @@
           debug:
             msg: "{{ verify_install.stdout }}"
         
-      when: ansible_os_family == "RedHat"
+      when: ansible_os_family == "RedHat" and qualys_check.rc != 0
   
     - block:
         - name: wait 30 seconds for full Qualys installation
@@ -104,34 +108,30 @@
             state: started
             enabled: yes
     
-      when: ansible_os_family == "RedHat"
+      when: ansible_os_family == "RedHat" and qualys_check.rc != 0
 
-# ---------------------------------------------------------
+# -------------------------------------------------
 # Windows Family - Set facts, Download and Install
-# ---------------------------------------------------------
+# -------------------------------------------------
     - block:
         - name: Set package filename for Windows
           set_fact:
             package_file: "Windows_QualysCloudAgent.exe"
-          when: ansible_os_family == "Windows"
         
         - name: Download package from AWS S3
           win_get_url:
             url: "{{ qualys_url_windows }}"
             dest: "C:\\Temp\\{{ package_file }}"
-          when: ansible_os_family == "Windows"
         
         - name: Install package from local path
           win_command: >
             C:\Temp\{{ package_file }} CustomerId={{ qualys_customer_id }} ActivationId={{ qualys_activation_id }} WebServiceUri=https://qagpublic.qg1.apps.qualys.com/CloudAgent/ /quiet /norestart
           ignore_errors: true
           register: script_output
-          when: ansible_os_family == "Windows"
         
         - name: wait 30 seconds for full Qualys installation
           pause:
             seconds: 30
-          when: ansible_os_family == "Windows"
         
         - name: Start Qualys Agent service on Windows
           win_service:
@@ -140,12 +140,3 @@
             start_mode: auto
       
       when: ansible_os_family == "Windows"
-    
-# ---------------------------------
-# Fail if no matching package
-# ---------------------------------
-    # - block:
-    #     - name: Fail if no package_file defined
-    #       fail:
-    #         msg: "No matching package defined for {{ ansible_distribution }} {{ ansible_architecture }}"
-    #   when: package_file is not defined
