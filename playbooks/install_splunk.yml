@@ -4,18 +4,26 @@
   become: yes
   gather_facts: yes
 
-   pre_tasks:
-    - name: Enable RHEL repos and install python3
+  pre_tasks:
+    - name: Detect OS and install Python3 if missing
       raw: |
-        if [ -f /etc/redhat-release ]; then
-          subscription-manager register --username=jithin_aap --password="{{ rhel_password }}" --auto-attach || true
-          subscription-manager repos --enable rhel-8-baseos-rpms --enable rhel-8-appstream-rpms || true
-          yum install -y python3 python3-pip
+        if [ -f /etc/os-release ]; then
+          . /etc/os-release
+          if [[ "$ID" == "amzn" ]]; then
+            yum install -y python3 python3-pip
+          elif [[ "$ID" == "rhel" ]]; then
+            subscription-manager repos --enable rhel-8-baseos-rpms --enable rhel-8-appstream-rpms || true
+            yum install -y python3 python3-pip
+          elif [[ "$ID" == "centos" ]] || [[ "$ID" == "rocky" ]] || [[ "$ID" == "almalinux" ]]; then
+            yum install -y epel-release
+            yum install -y python3 python3-pip
+          fi
         fi
       changed_when: false
-# --------------------------------------------------------------
-# Linux - RHEL, Debian Family - Set facts, Download and Install
-# --------------------------------------------------------------
+
+    - name: Gather facts after Python is installed
+      setup:
+
   tasks:
     - block:
         - name: Ensure Python3, pip, and boto libraries are installed
