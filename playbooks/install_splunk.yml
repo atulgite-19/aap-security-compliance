@@ -5,13 +5,13 @@
   gather_facts: yes
 
   pre_tasks:
-    - name: Install python3 on Amazon Linux 2 if missing
+    - name: Install python3
       raw: |
-        if [ -f /etc/redhat-release ]; then
-          subscription-manager repos --enable rhel-8-baseos-rpms --enable rhel-8-appstream-rpms || true
+        if ! command -v python3 >/dev/null 2>&1; then
+          amazon-linux-extras enable python3.8
           yum install -y python3 python3-pip
         fi
-    changed_when: false
+      changed_when: false
 # --------------------------------------------------------------
 # Linux - RHEL, Debian Family - Set facts, Download and Install
 # --------------------------------------------------------------
