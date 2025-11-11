@@ -84,7 +84,7 @@
           amazon.aws.s3_object:
             bucket: "security-tools-storage"
             # object: "Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm"
-            object: "{{ splunk_url }}"
+            object: "splunk-installer-linux-uf-x86_64-9.3.5r1.tar.gz"
             dest: "/tmp/SplunkForwarder.tar.gz"
             mode: get
             region: "us-east-1"
