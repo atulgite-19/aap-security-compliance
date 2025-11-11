@@ -102,14 +102,21 @@
     
         - name: Find extracted Splunk directory
           find:
-            paths: /root/Splunk
+            paths: /tmp
+            patterns: "splunk*"
             file_type: directory
-            depth: 1
+            depth: 2
           register: extracted_dirs
-    
-        - name: Set the working directory
+
+        - name: Set the working directory if extraction found something
           set_fact:
             splunk_dir: "{{ extracted_dirs.files[0].path }}"
+          when: extracted_dirs.files | length > 0
+
+        - name: Fail if Splunk directory was not found
+          fail:
+            msg: "No Splunk directory found after extraction — check the archive contents or extraction path."
+          when: extracted_dirs.files | length == 0
     
         - name: Ensure the Splunk installer script has executable permission
           file:
