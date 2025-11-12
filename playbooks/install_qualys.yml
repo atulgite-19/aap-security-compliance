@@ -4,28 +4,16 @@
   become: yes
   gather_facts: yes
 
-  # vars:
-  #   qualys_packages:
-  #   RedHat:
-  #     x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
-  #   CentOS:
-  #     x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
-  #   Amazon:
-  #     x86_64: Linux_RPM_X64_QualysCloudAgent_7.1.0.37.rpm
-  #   Ubuntu:
-  #     x86_64: Linux_Deb_X64_QualysCloudAgent_7.1.0.37.deb
-  
-  #   qualys_binary: "{{ qualys_packages[ansible_distribution][ansible_architecture] }}"
-  
+# ------------------------------------------------
+# Linux Family - Set facts, Download and Install
+# ------------------------------------------------
   tasks:
     - name: Check if Qualys Cloud Agent is already installed
       become: true
       ansible.builtin.shell: rpm -q qualys-cloud-agent
       register: qualys_check
       ignore_errors: true
-# --------------------------------------------------------
-# Linux - RedHat Family - Set facts, Download and Install
-# --------------------------------------------------------
+
     - block:
         - name: Ensure Python3, pip, and boto libraries are installed
           block:
@@ -66,19 +54,10 @@
             - s3_download is defined
             - s3_download.changed | default(false)
         
-        # - name: Check if Qualys Cloud Agent is already installed
-        #   become: true
-        #   ansible.builtin.shell: rpm -q qualys-cloud-agent
-        #   register: qualys_check
-        #   ignore_errors: true
-        
         - name: Install Qualys Cloud Agent
           become: true
           ansible.builtin.command: sudo rpm -ivh /tmp/QualysCloudAgent.rpm
           when: qualys_check.rc != 0
-    
-        # - name: Install Qualys Cloud Agent RPM
-        #   command: sudo rpm -ivh "/tmp/QualysCloudAgent.rpm"
         
         - name: Verify installation
           command: rpm -q qualys-cloud-agent
