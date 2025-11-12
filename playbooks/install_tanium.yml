@@ -72,7 +72,7 @@
           amazon.aws.s3_object:
             bucket: "security-tools-storage"
             object: "tanium-init.dat"
-            dest: "/opt/Tanium/TaniumClient/"
+            dest: "/opt/Tanium/TaniumClient/tanium-init.dat"
             mode: get
             region: "us-east-1"
           when: not rpm_stat.stat.exists
