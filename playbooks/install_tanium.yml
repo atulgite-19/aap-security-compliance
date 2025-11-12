@@ -61,8 +61,11 @@
 
 # ------------- INSTALL TANIUM -------------
         - name: Tanium | Install tanium rpm package
-          shell: "rpm -ivh /tmp/taniumclient.rpm"
-          ignore_errors: true
+          dnf:
+            name: /tmp/taniumclient.rpm
+            state: present
+          # shell: "rpm -ivh /tmp/taniumclient.rpm"
+          # ignore_errors: true
 
 # --------- COPY tanium-init.dat ---------
         - name: Download and Copy tanium-init.dat file from S3
