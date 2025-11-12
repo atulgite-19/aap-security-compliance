@@ -1,183 +1,99 @@
-# --------------------------------------
-# Linux - SLES - Set facts and Download
-# --------------------------------------
-- block: 
-    - name: Set Package | Filename for SLES 15
-      set_fact:
-        package_file: "TaniumClient-sle15.x86_64.rpm"
-      when:
-      - ansible_distribution_major_version == "15"
-
-    - name: Set Package | Filename for SLES 12
-      set_fact:
-        package_file: "TaniumClient-sle12.x86_64.rpm"
-      when:
-      - ansible_distribution_major_version == "12"
-  when:
-  - ansible_distribution == "SLES" or ansible_distribution == "SLES_SAP"
-
-# ----------------------------------------
-# Linux - RHEL 7 - Set facts and Download
-# ----------------------------------------
-- block:
-    - name: Set Package | Filename for RHEL 7
-      set_fact:
-        package_file: "TaniumClient-rhe7.x86_64.rpm"
-  when:
-  - ansible_distribution == "RedHat" 
-  - ansible_distribution_major_version == "7"
-
+---
+- name: Install and Configure Tanium
+  hosts: all
+  become: yes
+  gather_facts: yes
+  tasks:
 # ----------------------------------------
 # Linux - RHEL 8 - Set facts and Download
 # ----------------------------------------
-- block:
-    - name: Set Package | Filename for RHEL 8 AARCH64
-      set_fact:
-        package_file: "TaniumClient-rhe8.aarch64.rpm"
+    - block:
+        - name: Set Package | Filename for RHEL 8 AARCH64
+          set_fact:
+            package_file: "TaniumClient-rhe8.aarch64.rpm"
+          when:
+          - ansible_architecture == "aarch64"
+    
+        - name: Set Package | Filename for RHEL 8 x86_64
+          set_fact:
+            package_file: "TaniumClient-rhe8.x86_64.rpm"
+          when:
+          - ansible_architecture == "x86_64"
       when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for RHEL 8 x86_64
-      set_fact:
-        package_file: "TaniumClient-rhe8.x86_64.rpm"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_distribution == "RedHat" 
-  - ansible_distribution_major_version == "8"
-
-# ----------------------------------------
-# Linux - RHEL 9 - Set facts and Download
-# ----------------------------------------
-- block:
-    - name: Set Package | Filename for RHEL 9 AARCH64
-      set_fact:
-        package_file: "TaniumClient-rhe9.aarch64.rpm"
-      when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for RHEL 9 x86_64
-      set_fact:
-        package_file: "TaniumClient-rhe9.x86_64.rpm"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_distribution == "RedHat" 
-  - ansible_distribution_major_version == "9"
-
-# ---------------------------------------
-# Linux - OEL 8 - Set facts and Download
-# ---------------------------------------
-- block:
-    - name: Set Package | Filename for OEL 8 AARCH64
-      set_fact:
-        package_file: "TaniumClient-oel8.aarch64.rpm"
-      when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for OEL 8 x86_64
-      set_fact:
-        package_file: "TaniumClient-oel8.x86_64.rpm"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_distribution == "OracleLinux"
-  - ansible_distribution_major_version == "8"
-
-# ---------------------------------------
-# Linux - OEL 9 - Set facts and Download
-# ---------------------------------------
-- block:
-    - name: Set Package | Filename for OEL 9 AARCH64
-      set_fact:
-        package_file: "TaniumClient-oel9.aarch64.rpm"
-      when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for OEL 9 x86_64
-      set_fact:
-        package_file: "TaniumClient-oel9.x86_64.rpm"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_distribution == "OracleLinux"
-  - ansible_distribution_major_version == "9"
-
-# ----------------------------------------
-# Linux - Debian - Set facts and Download
-# ----------------------------------------
-- block:
-    - name: Set Package | Filename for DEBIAN 12 ARM64
-      set_fact:
-        package_file: "taniumclient_7.4.10.1086-debian12_arm64.deb"
-      when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for DEBIAN 12 AMD64
-      set_fact:
-        package_file: "taniumclient_7.4.10.1086-debian12_amd64.deb"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_os_family == "Debian"
-  - ansible_distribution == "Debian"
-  - ansible_distribution_major_version == "12"
-
-# ----------------------------------------
-# Linux - Ubuntu - Set facts and Download
-# ----------------------------------------
-- block:
-    - name: Set Package | Filename for UBUNTU 22 ARM64
-      set_fact:
-        package_file: "taniumclient_7.4.10.1086-ubuntu22_arm64.deb"
-      when:
-      - ansible_architecture == "aarch64"
-
-    - name: Set Package | Filename for DEBIAN 12 AMD64
-      set_fact:
-        package_file: "taniumclient_7.4.10.1086-ubuntu22_amd64.deb"
-      when:
-      - ansible_architecture == "x86_64"
-  when:
-  - ansible_os_family == "Debian"
-  - ansible_distribution == "Ubuntu"
-  - ansible_distribution_major_version == "22"
+      - ansible_distribution == "RedHat" 
+      - ansible_distribution_major_version == "8"
 
 # --------------------------------
 # Linux - Configure Tanium Client
 # --------------------------------
-- name: Download | Package from Azure Blob
-  get_url:
-    url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/{{ package_file }}{{ sas_token }}"
-    dest: "/tmp/{{ package_file }}"
-    mode: '0644'
+    - name: Check if Tanium already installed
+      stat:
+        path: /opt/Tanium/TaniumClient
+      register: tanium_path
+
+    - block:
+        - name: Check if Tanium service exists
+          shell: systemctl list-unit-files | grep -w taniumclient.service || true
+          register: tanium_service
+          changed_when: false
+    
+        - name: Enable and start Tanium service if it exists
+          systemd:
+            name: taniumclient
+            enabled: yes
+            state: started
+          when: tanium_service.stdout != ""
+          
+        - name: Check if Tanium file already exists
+          stat:
+            path: /tmp/"{{ package_file }}"
+          register: rpm_stat
+        
+        - name: Download tanium client from S3
+          amazon.aws.s3_object:
+            bucket: "security-tools-storage"
+            object: "{{ package_file }}"
+            dest: "/tmp/taniumclient.rpm"
+            mode: get
+            region: "us-east-1"
+          when: not rpm_stat.stat.exists
+          register: s3_download
 
 # ------------- INSTALL TANIUM -------------
-- name: Tanium | Install tanium rpm package
-  shell: "rpm -ivh /tmp/{{ package_file }}"
-  ignore_errors: true
+        - name: Tanium | Install tanium rpm package
+          shell: "rpm -ivh /tmp/taniumclient.rpm"
+          ignore_errors: true
 
 # --------- COPY tanium-init.dat ---------
-- name: Download & Copy | tanium-init.dat
-  get_url:
-    url: "https://{{ storage_account }}.blob.core.windows.net/{{ container }}/tanium-init.dat{{ sas_token }}"
-    dest: "/opt/Tanium/TaniumClient/"
-    owner: root
-    group: root
-    mode: 700
+        - name: Download and Copy tanium-init.dat file from S3
+          amazon.aws.s3_object:
+            bucket: "security-tools-storage"
+            object: "tanium-init.dat"
+            dest: "/opt/Tanium/TaniumClient/"
+            mode: get
+            region: "us-east-1"
+          when: not rpm_stat.stat.exists
+          register: s3_download
+
+        - name: Ensure the tanium-init.dat has right owner and group
+          file:
+            path: "/opt/Tanium/TaniumClient/tanium-init.dat"
+            mode: '0700'
+            owner: root
+            group: root
 
 # ------- CONFIGURE TANIUM -------
-- name: Tanium | Configure tanium
-  shell: "{{ item }}"
-  with_items:
-    - /opt/Tanium/TaniumClient/TaniumClient config set ServerNameList tanium-srv-prod-z1.accenture.com,tanium-srv-prod-z2.accenture.com
-    - /opt/Tanium/TaniumClient/TaniumClient config set LogVerbosityLevel 1
-    - /opt/Tanium/TaniumClient/TaniumClient config set ServerPort 443
-    - /opt/Tanium/TaniumClient/TaniumClient config set ListenPort 17472
-    - /opt/Tanium/TaniumClient/TaniumClient config set Resolver nslookup
+        - name: Tanium | Configure tanium
+          shell: "{{ item }}"
+          with_items:
+            - /opt/Tanium/TaniumClient/TaniumClient config set ServerNameList tanium-srv-prod-z1.accenture.com,tanium-srv-prod-z2.accenture.com
+            - /opt/Tanium/TaniumClient/TaniumClient config set LogVerbosityLevel 1
+            - /opt/Tanium/TaniumClient/TaniumClient config set ServerPort 443
+            - /opt/Tanium/TaniumClient/TaniumClient config set ListenPort 17472
+            - /opt/Tanium/TaniumClient/TaniumClient config set Resolver nslookup
 
 # --------------- RESTART TANIUM --------------
-- name: Restart | Restart taniumclient service
-  service:
-    name: taniumclient
-    state: restarted
+        - name: Restart | Restart taniumclient service
+          service:
+            name: taniumclient
+            state: restarted
