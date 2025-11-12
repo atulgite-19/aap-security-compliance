@@ -16,7 +16,7 @@
     
         - name: Set Package | Filename for RHEL 8 x86_64
           set_fact:
-            package_file: "TaniumClient-rhe8.x86_64.rpm"
+            package_file: "TaniumClient-7.4.10.1086-1.rhe8.x86_64.rpm"
           when:
           - ansible_architecture == "x86_64"
       when:
